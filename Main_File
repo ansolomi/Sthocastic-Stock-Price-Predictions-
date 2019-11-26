@@ -7,6 +7,9 @@ from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
 stock_name = 'FSE/PUM_X'
+
+# Plot of E.ON(a big scale energy company in Europe)
+# stock prices since beginning of 2019 (up to July)
 prices = quandl.get(stock_name,
                     authtoken='ww-bAYiqobTWkPLHozgf',
                     start_date='2019-06-01', end_date='2020-01-01'
@@ -17,7 +20,7 @@ plt.xlabel('Days')
 plt.ylabel('Stock Prices')
 plt.show()
 
-# GEOMETRIC BROWNIAN MOTION
+# --------------------------------------------------- GEOMETRIC BROWNIAN MOTION ------------------------------------------------
 
 # Parameter Definitions
 
@@ -48,9 +51,9 @@ returns = (S_eon.loc[1:, 'Close'] - \
           S_eon.shift(1).loc[1:, 'Close']
 print(returns.tolist())
 
-
+# Parameter Assignments
 So = S_eon.loc[S_eon.shape[0] - 1, "Close"]
-dt = 1 
+dt = 1  # day   # User input
 n_of_wkdays = pd.date_range(start=pd.to_datetime(end_date,
                                                  format="%Y-%m-%d") + pd.Timedelta('1 days'),
                             end=pd.to_datetime(pred_end_date,
@@ -61,23 +64,23 @@ T = n_of_wkdays  # days  # User input -> follows from pred_end_date
 N = T / dt
 t = np.arange(1, int(N) + 1)
 mu = np.mean(returns)
-sigma = np.std(returns)  #Standard Deviation
-scen_size = 5 #Jumlah prediksi
+sigma = np.std(returns)
+scen_size = 3  # User input
 b = {str(scen): np.random.normal(0, 1, int(N)) for scen in range(1, scen_size + 1)}
 W = {str(scen): b[str(scen)].cumsum() for scen in range(1, scen_size + 1)}
 
-# drift and diffusion
+# Calculating drift and diffusion components
 drift = (mu - 0.5 * sigma ** 2) * t
 print(drift)
 diffusion = {str(scen): sigma * W[str(scen)] for scen in range(1, scen_size + 1)}
 print(diffusion)
 
-# Prediksi
+# Making the predictions
 S = np.array([So * np.exp(drift + diffusion[str(scen)]) for scen in range(1, scen_size + 1)])
 S = np.hstack((np.array([[So] for scen in range(scen_size)]), S))  # add So to the beginning series
 print(S)
 
-# Plotting 
+# Plotting the simulations
 plt.figure(figsize=(20, 10))
 for i in range(scen_size):
     plt.title("Daily Volatility: " + str(sigma))
@@ -85,11 +88,10 @@ for i in range(scen_size):
                            end=pred_end_date, freq='D').map(lambda x:
                                                             x if x.isoweekday() in range(1, 6) else np.nan).dropna(),
              S[i, :])
-    plt.ylabel('Stock Prices, €')
-    plt.xlabel('Prediction Days')
+    plt.ylabel('Stock Prices')
+    plt.xlabel('Predictions')
 plt.show()
 
-# Dataframe format for predictions - first 10 scenarios only
 Preds_df = pd.DataFrame(S.swapaxes(0, 1)[:, :10]).set_index(
     pd.date_range(start=S_eon["Date"].max(),
                   end=pred_end_date, freq='D').map(lambda x:
